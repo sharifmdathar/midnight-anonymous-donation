@@ -17,6 +17,6 @@
     "preprod-ps": "docker compose -f proof-server.yml pull && node --experimental-specifier-resolution=node --loader ts-node/esm src/preprod-start-proof-server.ts","server":"bun src/server.ts"
   },
   "dependencies": {
-    "@midnight-ntwrk/donation-contract": "*","express":"^4.21.0"
+    "@midnight-ntwrk/donation-contract": "*","express":"^5.2.1"
   }
 }
