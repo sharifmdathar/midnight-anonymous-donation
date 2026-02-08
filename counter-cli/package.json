@@ -5,6 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "preflight": "vitest run src/test/donation-preflight.test.ts",
     "standalone": "docker compose -f standalone.yml pull && node --experimental-specifier-resolution=node --loader ts-node/esm src/standalone.ts",
     "test-api": "docker compose -f standalone.yml pull && DEBUG='testcontainers' vitest run",
     "build": "rm -rf dist && tsc --project tsconfig.build.json",
@@ -13,9 +14,9 @@
     "preview": "node --experimental-specifier-resolution=node --loader ts-node/esm src/preview.ts",
     "preview-ps": "docker compose -f proof-server.yml pull && node --experimental-specifier-resolution=node --loader ts-node/esm src/preview-start-proof-server.ts",
     "preprod": "node --experimental-specifier-resolution=node --loader ts-node/esm src/preprod.ts",
-    "preprod-ps": "docker compose -f proof-server.yml pull && node --experimental-specifier-resolution=node --loader ts-node/esm src/preprod-start-proof-server.ts"
+    "preprod-ps": "docker compose -f proof-server.yml pull && node --experimental-specifier-resolution=node --loader ts-node/esm src/preprod-start-proof-server.ts","server":"bun src/server.ts"
   },
   "dependencies": {
-    "@midnight-ntwrk/counter-contract": "*"
+    "@midnight-ntwrk/donation-contract": "*","express":"^4.21.0"
   }
 }

@@ -19,7 +19,8 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@contract/*": ["../../contract/src/*"]
+      "@contract/*": ["../contract/src/*"],
+      "@midnight-ntwrk/donation-contract": ["../contract/dist/index"]
     }
   }
 }

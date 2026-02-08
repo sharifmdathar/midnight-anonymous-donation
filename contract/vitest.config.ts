@@ -23,8 +23,8 @@ export default defineConfig({
     },
     globals: true,
     environment: "node",
-    include: ["**/*.test.ts"],
-    exclude: ["node_modules"],
+    include: ["src/test/donation.test.ts"],
+    exclude: ["node_modules", "**/counter*.ts"],
     root: ".",
     coverage: {
       provider: "v8",

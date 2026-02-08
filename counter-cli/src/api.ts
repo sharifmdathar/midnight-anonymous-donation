@@ -16,7 +16,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
-import { Counter, type CounterPrivateState, witnesses } from '@midnight-ntwrk/counter-contract';
+import { Donation, type DonationPrivateState, witnesses } from '@midnight-ntwrk/donation-contract';
 import * as ledger from '@midnight-ntwrk/ledger-v7';
 import { unshieldedToken } from '@midnight-ntwrk/ledger-v7';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
@@ -39,11 +39,11 @@ import { type Logger } from 'pino';
 import * as Rx from 'rxjs';
 import { WebSocket } from 'ws';
 import {
-  type CounterCircuits,
-  type CounterContract,
-  type CounterPrivateStateId,
-  type CounterProviders,
-  type DeployedCounterContract,
+  type DonationCircuits,
+  type DonationContract,
+  DonationPrivateStateId,
+  type DonationProviders,
+  type DeployedDonationContract,
 } from './common-types';
 import { type Config, contractConfig } from './config';
 import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
@@ -64,9 +64,9 @@ let logger: Logger;
 // @ts-expect-error: It's needed to enable WebSocket usage through apollo
 globalThis.WebSocket = WebSocket;
 
-// Pre-compile the counter contract with ZK circuit assets
-const counterCompiledContract = CompiledContract.make('counter', Counter.Contract).pipe(
-  CompiledContract.withVacantWitnesses,
+// Pre-compile the donation contract with ZK circuit assets and witness functions
+const donationCompiledContract = CompiledContract.make('donation', Donation.Contract).pipe(
+  CompiledContract.withWitnesses(witnesses),
   CompiledContract.withCompiledFileAssets(contractConfig.zkConfigPath),
 );
 
@@ -77,68 +77,97 @@ export interface WalletContext {
   unshieldedKeystore: UnshieldedKeystore;
 }
 
-export const getCounterLedgerState = async (
-  providers: CounterProviders,
+export const getDonationLedgerState = async (
+  providers: DonationProviders,
   contractAddress: ContractAddress,
-): Promise<bigint | null> => {
+): Promise<{ donationCount: bigint; round: bigint } | null> => {
   assertIsContractAddress(contractAddress);
   logger.info('Checking contract ledger state...');
-  const state = await providers.publicDataProvider
-    .queryContractState(contractAddress)
-    .then((contractState) => (contractState != null ? Counter.ledger(contractState.data).round : null));
-  logger.info(`Ledger state: ${state}`);
-  return state;
+  const contractState = await providers.publicDataProvider.queryContractState(contractAddress);
+  if (contractState == null) {
+    logger.info('No contract state found');
+    return null;
+  }
+  const state = Donation.ledger(contractState.data);
+  logger.info(`Donation count: ${state.donationCount}, round: ${state.round}`);
+  return { donationCount: state.donationCount, round: state.round };
 };
 
-export const counterContractInstance: CounterContract = new Counter.Contract(witnesses);
+export const donationContractInstance: DonationContract = new Donation.Contract(witnesses);
 
 export const joinContract = async (
-  providers: CounterProviders,
+  providers: DonationProviders,
   contractAddress: string,
-): Promise<DeployedCounterContract> => {
-  const counterContract = await findDeployedContract(providers, {
+): Promise<DeployedDonationContract> => {
+  const donationContract = await findDeployedContract(providers, {
     contractAddress,
-    compiledContract: counterCompiledContract,
-    privateStateId: 'counterPrivateState',
-    initialPrivateState: { privateCounter: 0 },
+    compiledContract: donationCompiledContract as unknown as Parameters<typeof findDeployedContract>[1]['compiledContract'],
+    privateStateId: DonationPrivateStateId,
+    initialPrivateState: {
+      recipientSecretKey: new Uint8Array(32),
+      donationAmount: 0n,
+    },
   });
-  logger.info(`Joined contract at address: ${counterContract.deployTxData.public.contractAddress}`);
-  return counterContract;
+  logger.info(`Joined contract at address: ${donationContract.deployTxData.public.contractAddress}`);
+  return donationContract as DeployedDonationContract;
 };
 
 export const deploy = async (
-  providers: CounterProviders,
-  privateState: CounterPrivateState,
-): Promise<DeployedCounterContract> => {
-  logger.info('Deploying counter contract...');
-  const counterContract = await deployContract(providers, {
-    compiledContract: counterCompiledContract,
-    privateStateId: 'counterPrivateState',
+  providers: DonationProviders,
+  privateState: DonationPrivateState,
+): Promise<DeployedDonationContract> => {
+  logger.info('Deploying donation contract...');
+  const donationContract = await deployContract(providers, {
+    args: [privateState.recipientSecretKey],
+    compiledContract: donationCompiledContract as unknown as Parameters<typeof deployContract>[1]['compiledContract'],
+    privateStateId: DonationPrivateStateId,
     initialPrivateState: privateState,
   });
-  logger.info(`Deployed contract at address: ${counterContract.deployTxData.public.contractAddress}`);
-  return counterContract;
+  logger.info(`Deployed contract at address: ${donationContract.deployTxData.public.contractAddress}`);
+  return donationContract as DeployedDonationContract;
 };
 
-export const increment = async (counterContract: DeployedCounterContract): Promise<FinalizedTxData> => {
-  logger.info('Incrementing...');
-  const finalizedTxData = await counterContract.callTx.increment();
+const nextDonationAmountByContract = new Map<string, bigint>();
+
+export function setDonationAmountForNextCall(contractAddress: string, amount: bigint): void {
+  nextDonationAmountByContract.set(contractAddress, amount);
+}
+
+export const donate = async (
+  donationContract: DeployedDonationContract,
+  amount: bigint,
+): Promise<FinalizedTxData> => {
+  logger.info(`Donating ${amount}...`);
+  setDonationAmountForNextCall(donationContract.deployTxData.public.contractAddress, amount);
+  try {
+    const finalizedTxData = await (donationContract.callTx as { donate: () => Promise<{ public: FinalizedTxData }> }).donate();
+    logger.info(`Transaction ${finalizedTxData.public.txId} added in block ${finalizedTxData.public.blockHeight}`);
+    return finalizedTxData.public;
+  } finally {
+    nextDonationAmountByContract.delete(donationContract.deployTxData.public.contractAddress);
+  }
+};
+
+export const withdraw = async (donationContract: DeployedDonationContract): Promise<FinalizedTxData> => {
+  logger.info('Withdrawing...');
+  const finalizedTxData = await (donationContract.callTx as { withdraw: () => Promise<{ public: FinalizedTxData }> }).withdraw();
   logger.info(`Transaction ${finalizedTxData.public.txId} added in block ${finalizedTxData.public.blockHeight}`);
   return finalizedTxData.public;
 };
 
-export const displayCounterValue = async (
-  providers: CounterProviders,
-  counterContract: DeployedCounterContract,
-): Promise<{ counterValue: bigint | null; contractAddress: string }> => {
-  const contractAddress = counterContract.deployTxData.public.contractAddress;
-  const counterValue = await getCounterLedgerState(providers, contractAddress);
-  if (counterValue === null) {
-    logger.info(`There is no counter contract deployed at ${contractAddress}.`);
+export const displayCampaignState = async (
+  providers: DonationProviders,
+  donationContract: DeployedDonationContract,
+): Promise<{ donationCount: bigint | null; contractAddress: string }> => {
+  const contractAddress = donationContract.deployTxData.public.contractAddress;
+  const state = await getDonationLedgerState(providers, contractAddress);
+  const donationCount = state?.donationCount ?? null;
+  if (donationCount === null) {
+    logger.info(`There is no donation contract at ${contractAddress}.`);
   } else {
-    logger.info(`Current counter value: ${Number(counterValue)}`);
+    logger.info(`Donation count: ${Number(donationCount)}`);
   }
-  return { contractAddress, counterValue };
+  return { contractAddress, donationCount };
 };
 
 /**
@@ -512,12 +541,33 @@ export const buildFreshWallet = async (config: Config): Promise<WalletContext> =
  */
 export const configureProviders = async (ctx: WalletContext, config: Config) => {
   const walletAndMidnightProvider = await createWalletAndMidnightProvider(ctx);
-  const zkConfigProvider = new NodeZkConfigProvider<CounterCircuits>(contractConfig.zkConfigPath);
+  const zkConfigProvider = new NodeZkConfigProvider<DonationCircuits>(contractConfig.zkConfigPath);
+  const basePrivateStateProvider = levelPrivateStateProvider<typeof DonationPrivateStateId>({
+    privateStateStoreName: contractConfig.privateStateStoreName,
+    walletProvider: walletAndMidnightProvider,
+  });
+  const privateStateProvider = new Proxy(basePrivateStateProvider, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+      if (typeof value === 'function' && (prop === 'getPrivateState' || prop === 'get')) {
+        return async (contractAddress: string, stateId: string, ...args: unknown[]) => {
+          const state = await (value as (...a: unknown[]) => Promise<DonationPrivateState>).call(
+            target,
+            contractAddress,
+            stateId,
+            ...args,
+          );
+          const amount = nextDonationAmountByContract.get(contractAddress);
+          if (amount !== undefined && state && typeof state === 'object')
+            return { ...state, donationAmount: amount } as DonationPrivateState;
+          return state;
+        };
+      }
+      return value;
+    },
+  });
   return {
-    privateStateProvider: levelPrivateStateProvider<typeof CounterPrivateStateId>({
-      privateStateStoreName: contractConfig.privateStateStoreName,
-      walletProvider: walletAndMidnightProvider,
-    }),
+    privateStateProvider,
     publicDataProvider: indexerPublicDataProvider(config.indexer, config.indexerWS),
     zkConfigProvider,
     proofProvider: httpClientProofProvider(config.proofServer, zkConfigProvider),

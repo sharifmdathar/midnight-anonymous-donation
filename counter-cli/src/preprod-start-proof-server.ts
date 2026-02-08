@@ -14,15 +14,49 @@
 // limitations under the License.
 
 import { createLogger } from './logger-utils.js';
-import { run } from './cli.js';
 import { currentDir, PreprodConfig } from './config.js';
-import { DockerComposeEnvironment, Wait } from 'testcontainers';
 import path from 'node:path';
+import util from 'node:util';
 
-const config = new PreprodConfig();
-const dockerEnv = new DockerComposeEnvironment(path.resolve(currentDir, '..'), 'proof-server.yml').withWaitStrategy(
-  'proof-server',
-  Wait.forLogMessage('Actix runtime found; starting in Actix runtime', 1),
-);
-const logger = await createLogger(config.logDir);
-await run(config, logger, dockerEnv);
+function safeStr(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (err == null) return 'null/undefined';
+  try {
+    return String(err);
+  } catch {
+    return Object.prototype.toString.call(err);
+  }
+}
+
+function safeInspect(err: unknown): string {
+  try {
+    return util.inspect(err, { depth: 5, breakLength: 80 });
+  } catch {
+    return Object.prototype.toString.call(err);
+  }
+}
+
+async function main() {
+  try {
+    const { DockerComposeEnvironment, Wait } = await import('testcontainers');
+    const { run } = await import('./cli.js');
+
+    const config = new PreprodConfig();
+    const dockerEnv = new DockerComposeEnvironment(path.resolve(currentDir, '..'), 'proof-server.yml')
+      .withWaitStrategy(
+        'proof-server',
+        Wait.forListeningPorts().withStartupTimeout(120_000),
+      );
+    const logger = await createLogger(config.logDir);
+    await run(config, logger, dockerEnv);
+  } catch (err) {
+    const msg = safeStr(err);
+    const stack = err instanceof Error ? err.stack : undefined;
+    process.stderr.write('Fatal error: ' + msg + '\n');
+    if (stack) process.stderr.write(stack + '\n');
+    process.stderr.write('Error value: ' + safeInspect(err) + '\n');
+    process.exit(1);
+  }
+}
+
+main();

@@ -1,0 +1,37 @@
+// AnonymousDonation contract for Midnight.
+// SPDX-License-Identifier: Apache-2.0
+
+pragma language_version >= 0.20;
+
+import CompactStandardLibrary;
+
+// Public ledger state
+export ledger recipientAuthority: Bytes<32>;
+export ledger donationCount: Counter;
+export ledger round: Counter;
+
+// Recipient's secret key (supplied at deploy and for withdraw)
+witness recipientSecretKey(): Bytes<32>;
+// Donation amount (supplied when calling donate)
+witness donationAmount(): Uint<64>;
+
+// Derive public key from round and secret for recipient authority
+circuit publicKey(roundVal: Field, sk: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<3, Bytes<32>>>([pad(32, "midnight:donation:pk"), roundVal as Bytes<32>, sk]);
+}
+
+constructor(recipientSk: Bytes<32>) {
+  recipientAuthority = disclose(publicKey(round, recipientSk));
+}
+
+export circuit donate(): [] {
+  const amount = donationAmount();
+  donationCount.increment(1);
+}
+
+export circuit withdraw(): [] {
+  const sk = recipientSecretKey();
+  const pk = publicKey(round, sk);
+  assert(pk == recipientAuthority, "Only recipient can withdraw");
+  round.increment(1);
+}
