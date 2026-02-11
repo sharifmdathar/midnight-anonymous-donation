@@ -17,7 +17,7 @@ export default function Home() {
           <Link to="/campaign/create">Create a campaign</Link> — deploy a campaign as the recipient; only you can
           withdraw.
         </p>
-        <p>Share your campaign address so others can donate. Donors use &quot;Join campaign&quot; then donate with a private amount.</p>
+        <p>Share your campaign <strong>contract address</strong> so others can donate. Donors enter the contract address to join, then donate with a private amount.</p>
       </div>
     </div>
   );

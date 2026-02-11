@@ -2,7 +2,7 @@
 import util from 'node:util';
 
 try {
-  await import('./server.ts');
+  await import('./server.js');
 } catch (err) {
   console.error('Failed to start server:', err instanceof Error ? err.message : String(err));
   if (err instanceof Error && err.stack) console.error(err.stack);

@@ -1,4 +1,4 @@
-// This file is part of midnightntwrk/example-counter.
+// This file is part of anonymous-donation.
 // Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,17 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { createLogger } from './logger-utils.js';
-import { run } from './cli.js';
-import { currentDir, PreviewConfig } from './config.js';
-import { DockerComposeEnvironment, Wait } from 'testcontainers';
-import path from 'node:path';
+import protobuf from 'protobufjs';
+import Long from 'long';
 
-const config = new PreviewConfig();
-const dockerEnv = new DockerComposeEnvironment(path.resolve(currentDir, '..'), 'proof-server.yml')
-  .withWaitStrategy(
-    'proof-server',
-    Wait.forListeningPorts().withStartupTimeout(120_000),
-  );
-const logger = await createLogger(config.logDir);
-await run(config, logger, dockerEnv);
+protobuf.util.Long = Long;
+protobuf.configure();

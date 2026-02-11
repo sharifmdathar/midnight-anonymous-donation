@@ -28,27 +28,25 @@ jobs:
         with:
           compact-version: '0.28.0'
 
-      - name: Install Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238  #v6.2.0
-        with:
-          node-version: '22'
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Compile and test contract
         working-directory: contract
         run: |
-          npm run lint
-          npm run compact
-          npm run typecheck
-          npm run build
-          npm run test
+          bun run lint
+          bun run compact
+          bun run typecheck
+          bun run build
+          bun run test
 
-      - name: Compile counter-cli
-        working-directory: counter-cli
+      - name: Compile donation-cli
+        working-directory: donation-cli
         run: |
-          npm run lint
-          npm run typecheck
-          npm run build
-          npm run test-api
+          bun run lint
+          bun run typecheck
+          bun run build
+          bun run test-api

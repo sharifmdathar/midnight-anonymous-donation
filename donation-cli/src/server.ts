@@ -45,13 +45,13 @@ async function start() {
 
   const app = express();
   const corsOrigin = process.env['CORS_ORIGIN'] ?? 'http://localhost:5173';
-  app.use((_req, res, next) => {
+  app.use((_req: Request, res: Response, next: () => void) => {
     res.setHeader('Access-Control-Allow-Origin', corsOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     next();
   });
-  app.options('*', (_req, res) => res.sendStatus(204));
+  app.options('*', (_req: Request, res: Response) => res.sendStatus(204));
   app.use(express.json());
 
   app.post('/wallet', async (req: Request, res: Response) => {
@@ -177,11 +177,12 @@ async function start() {
       return res.status(400).json({ ok: false, error: 'Wallet not ready.' });
     }
     const address = req.params['address'];
-    if (!address) {
+    const addressStr = Array.isArray(address) ? address[0] : address;
+    if (!addressStr) {
       return res.status(400).json({ ok: false, error: 'Missing address' });
     }
     try {
-      const contract = await api.joinContract(providers, address).catch(() => null);
+      const contract = await api.joinContract(providers, addressStr).catch(() => null);
       if (!contract) {
         return res.status(404).json({ ok: false, error: 'Contract not found' });
       }

@@ -92,7 +92,12 @@ export default function Campaign() {
     <div className="container">
       <div className="card">
         <h1>Campaign</h1>
-        {address && <p style={{ wordBreak: 'break-all' }}>{address}</p>}
+        {address && (
+          <>
+            <p><strong>Contract address:</strong></p>
+            <p style={{ wordBreak: 'break-all' }}>{address}</p>
+          </>
+        )}
         <p>Donation count: {donationCount ?? '—'}</p>
         <button className="secondary" onClick={loadCampaign}>
           Refresh
@@ -114,11 +119,11 @@ export default function Campaign() {
             Donate
           </button>
         </p>
-        <p>Or join by address and donate:</p>
+        <p>Or join by contract address and donate:</p>
         <p>
           <input
             type="text"
-            placeholder="Campaign address"
+            placeholder="Contract address"
             value={joinAddress}
             onChange={(e) => setJoinAddress(e.target.value)}
             style={{ width: '100%', marginBottom: '0.5rem' }}

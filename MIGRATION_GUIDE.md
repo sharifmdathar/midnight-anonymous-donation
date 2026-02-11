@@ -11,7 +11,7 @@ Guide for deploying or upgrading Midnight contracts/dApps to the Preprod network
 - **Compact version manager (`compact`)**: `0.4.0`
 - **Compiler version**: `0.28.0` (installed and invoked via the version manager)
 
-> **Important**: You do not invoke `compactc` directly. The `compact` version manager finds and runs the correct compiler version. All compilation uses `compact compile` (or `npm run compact` in this project).
+> **Important**: You do not invoke `compactc` directly. The `compact` version manager finds and runs the correct compiler version. All compilation uses `compact compile` (or `bun run compact` in this project).
 
 ### Clean Install (recommended)
 

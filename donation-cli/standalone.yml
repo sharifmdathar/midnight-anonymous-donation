@@ -1,6 +1,6 @@
 services:
   proof-server:
-    container_name: 'counter-proof-server'
+    container_name: 'donation-proof-server'
     image: 'midnightntwrk/proof-server:7.0.0'
     command: ['midnight-proof-server -v']
     ports:
@@ -8,14 +8,10 @@ services:
     environment:
       RUST_BACKTRACE: 'full'
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:6300/version']
-      interval: 10s
-      timeout: 5s
-      retries: 20
-      start_period: 10s
+      disable: true
 
   indexer:
-    container_name: 'counter-indexer'
+    container_name: 'donation-indexer'
     image: 'midnightntwrk/indexer-standalone:3.0.0'
     env_file: standalone.env.example
     ports:
@@ -35,7 +31,7 @@ services:
 
   node:
     image: 'midnightntwrk/midnight-node:0.20.0'
-    container_name: 'counter-node'
+    container_name: 'donation-node'
     ports:
       - '9944:9944'   # host:container so API on host can reach 127.0.0.1:9944
     healthcheck:
