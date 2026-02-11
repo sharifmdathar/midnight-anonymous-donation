@@ -20,7 +20,7 @@
     "baseUrl": ".",
     "paths": {
       "@contract/*": ["../contract/src/*"],
-      "@midnight-ntwrk/donation-contract": ["../contract/dist/index"]
+      "anonymous-donation-contract": ["../contract/dist/index"]
     }
   }
 }

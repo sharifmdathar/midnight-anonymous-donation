@@ -32,7 +32,7 @@ export default function CreateCampaign() {
     <div className="container">
       <div className="card">
         <h1>Create campaign</h1>
-        <p>Deploy a campaign as the recipient. Only you can withdraw. Share the campaign address so others can donate.</p>
+        <p>Deploy a campaign as the recipient. Only you can withdraw. Share the contract address so others can donate.</p>
         <button onClick={deploy} disabled={loading}>
           {loading ? 'Deploying…' : 'Deploy campaign'}
         </button>
@@ -41,6 +41,7 @@ export default function CreateCampaign() {
       {contractAddress && (
         <div className="card">
           <h2>Campaign created</h2>
+          <p><strong>Contract address:</strong></p>
           <p style={{ wordBreak: 'break-all' }}>{contractAddress}</p>
           <button className="secondary" onClick={copyAddress}>
             Copy address

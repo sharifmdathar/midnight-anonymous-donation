@@ -1,4 +1,4 @@
-// This file is part of midnightntwrk/example-counter.
+// This file is part of anonymous-donation.
 // Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,10 +13,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { createLogger } from './logger-utils.js';
-import { run } from './cli.js';
-import { PreviewConfig } from './config.js';
-
-const config = new PreviewConfig();
-const logger = await createLogger(config.logDir);
-await run(config, logger);
+export * from './api';
+export * from './cli';

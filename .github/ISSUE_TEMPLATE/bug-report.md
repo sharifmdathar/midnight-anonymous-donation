@@ -2,7 +2,7 @@
 name: Bug Report
 about: Describe this issue template's purpose here.
 title: ""
-labels: example-counter, public
+labels: anonymous-donation, public
 assignees: ""
 ---
 

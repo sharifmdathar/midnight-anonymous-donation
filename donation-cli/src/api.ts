@@ -1,4 +1,4 @@
-// This file is part of midnightntwrk/example-counter.
+// This file is part of anonymous-donation.
 // Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
-import { Donation, type DonationPrivateState, witnesses } from '@midnight-ntwrk/donation-contract';
+import { Donation, type DonationPrivateState, witnesses } from 'anonymous-donation-contract';
 import * as ledger from '@midnight-ntwrk/ledger-v7';
 import { unshieldedToken } from '@midnight-ntwrk/ledger-v7';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
@@ -521,13 +521,20 @@ ${DIV}
 
   // Check if wallet has funds; if not, wait for incoming tokens
   const balance = syncedState.unshielded.balances[unshieldedToken().raw] ?? 0n;
+  const isUndeployed = getNetworkId() === 'undeployed';
   if (balance === 0n) {
-    const fundedBalance = await withStatus('Waiting for incoming tokens', () => waitForFunds(wallet));
-    console.log(`    Balance: ${formatBalance(fundedBalance)} tNight\n`);
+    if (isUndeployed) {
+      console.log('  (Undeployed: no faucet — use "Restore from seed" with genesis seed for pre-funded wallet)\n');
+    } else {
+      const fundedBalance = await withStatus('Waiting for incoming tokens', () => waitForFunds(wallet));
+      console.log(`    Balance: ${formatBalance(fundedBalance)} tNight\n`);
+    }
   }
 
-  // Register NIGHT UTXOs for dust generation (required for tx fees on Preprod/Preview)
-  await registerForDustGeneration(wallet, unshieldedKeystore);
+  // Register NIGHT UTXOs for dust generation (skip on undeployed if no funds)
+  if (!isUndeployed || balance > 0n) {
+    await registerForDustGeneration(wallet, unshieldedKeystore);
+  }
 
   return { wallet, shieldedSecretKeys, dustSecretKey, unshieldedKeystore };
 };

@@ -4,12 +4,12 @@ import {
   type CircuitContext,
   sampleContractAddress,
   createConstructorContext,
-  createCircuitContext,
+  createCircuitContext
 } from "@midnight-ntwrk/compact-runtime";
 import {
   Contract,
   type Ledger,
-  ledger,
+  ledger
 } from "../managed/donation/contract/index.js";
 import { type DonationPrivateState, witnesses } from "../witnesses.js";
 
@@ -29,21 +29,21 @@ export class DonationSimulator {
     this.contract = new Contract<DonationPrivateState>(witnesses);
     const initialPrivateState: DonationPrivateState = {
       recipientSecretKey: this.recipientSk,
-      donationAmount: 0n,
+      donationAmount: 0n
     };
     const {
       currentPrivateState,
       currentContractState,
-      currentZswapLocalState,
+      currentZswapLocalState
     } = this.contract.initialState(
       createConstructorContext(initialPrivateState, "0".repeat(64)),
-      this.recipientSk,
+      this.recipientSk
     );
     this.circuitContext = createCircuitContext(
       sampleContractAddress(),
       currentZswapLocalState,
       currentContractState,
-      currentPrivateState,
+      currentPrivateState
     );
   }
 
@@ -58,14 +58,18 @@ export class DonationSimulator {
   public donate(amount: bigint): Ledger {
     this.circuitContext.currentPrivateState = {
       ...this.circuitContext.currentPrivateState,
-      donationAmount: amount,
+      donationAmount: amount
     };
-    this.circuitContext = this.contract.impureCircuits.donate(this.circuitContext).context;
+    this.circuitContext = this.contract.impureCircuits.donate(
+      this.circuitContext
+    ).context;
     return ledger(this.circuitContext.currentQueryContext.state);
   }
 
   public withdraw(): Ledger {
-    this.circuitContext = this.contract.impureCircuits.withdraw(this.circuitContext).context;
+    this.circuitContext = this.contract.impureCircuits.withdraw(
+      this.circuitContext
+    ).context;
     return ledger(this.circuitContext.currentQueryContext.state);
   }
 }

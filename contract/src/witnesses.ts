@@ -14,18 +14,28 @@ type DonationWitnessContext = WitnessContext<Ledger, DonationPrivateState> & {
 };
 
 export const witnesses = {
-  recipientSecretKey(context: DonationWitnessContext): [DonationPrivateState, Uint8Array] {
+  recipientSecretKey(
+    context: DonationWitnessContext
+  ): [DonationPrivateState, Uint8Array] {
     const ps =
       context.currentPrivateState ??
-      (context as unknown as { privateState?: DonationPrivateState }).privateState;
-    if (!ps) throw new Error("recipientSecretKey witness: no private state in context");
+      (context as unknown as { privateState?: DonationPrivateState })
+        .privateState;
+    if (!ps)
+      throw new Error(
+        "recipientSecretKey witness: no private state in context"
+      );
     return [ps, ps.recipientSecretKey];
   },
-  donationAmount(context: DonationWitnessContext): [DonationPrivateState, bigint] {
+  donationAmount(
+    context: DonationWitnessContext
+  ): [DonationPrivateState, bigint] {
     const ps =
       context.currentPrivateState ??
-      (context as unknown as { privateState?: DonationPrivateState }).privateState;
-    if (!ps) throw new Error("donationAmount witness: no private state in context");
+      (context as unknown as { privateState?: DonationPrivateState })
+        .privateState;
+    if (!ps)
+      throw new Error("donationAmount witness: no private state in context");
     return [ps, ps.donationAmount];
-  },
+  }
 };

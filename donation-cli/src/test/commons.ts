@@ -1,4 +1,4 @@
-// This file is part of midnightntwrk/example-counter.
+// This file is part of anonymous-donation.
 // Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -131,21 +131,21 @@ export class TestEnvironment {
       this.logger.info(`Using compose file: ${composeFile}`);
       this.dockerEnv = new DockerComposeEnvironment(path.resolve(currentDir, '..'), composeFile)
         .withWaitStrategy(
-          'counter-proof-server',
+          'donation-proof-server',
           Wait.forLogMessage('Actix runtime found; starting in Actix runtime', 1),
         )
-        .withWaitStrategy('counter-indexer', Wait.forLogMessage(/starting indexing/, 1));
+        .withWaitStrategy('donation-indexer', Wait.forLogMessage(/starting indexing/, 1));
       this.env = await this.dockerEnv.up();
 
       this.testConfig.dappConfig = {
         ...this.testConfig.dappConfig,
-        indexer: TestEnvironment.mapContainerPort(this.env, this.testConfig.dappConfig.indexer, 'counter-indexer'),
-        indexerWS: TestEnvironment.mapContainerPort(this.env, this.testConfig.dappConfig.indexerWS, 'counter-indexer'),
-        node: TestEnvironment.mapContainerPort(this.env, this.testConfig.dappConfig.node, 'counter-node'),
+        indexer: TestEnvironment.mapContainerPort(this.env, this.testConfig.dappConfig.indexer, 'donation-indexer'),
+        indexerWS: TestEnvironment.mapContainerPort(this.env, this.testConfig.dappConfig.indexerWS, 'donation-indexer'),
+        node: TestEnvironment.mapContainerPort(this.env, this.testConfig.dappConfig.node, 'donation-node'),
         proofServer: TestEnvironment.mapContainerPort(
           this.env,
           this.testConfig.dappConfig.proofServer,
-          'counter-proof-server',
+          'donation-proof-server',
         ),
       };
     }

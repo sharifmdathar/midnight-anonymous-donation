@@ -16,7 +16,6 @@ export default function Wallet() {
     setError('');
     setLoading(true);
     try {
-      const body = restore && seed.trim() ? { seed: seed.trim() } : {};
       const res = await api.createWallet(restore ? seed.trim() : undefined);
       if (res.ok && res.unshieldedAddress) {
         setAddress(res.unshieldedAddress);
@@ -87,7 +86,8 @@ export default function Wallet() {
           <p style={{ wordBreak: 'break-all' }}>{address}</p>
           <p>
             Standalone (local): the chain must be running (Terminal 1: <code>docker compose -f standalone.yml up</code>).
-            No faucet — sync and DUST come from the local node.
+            No faucet — use &quot;Restore from seed&quot; with the genesis seed{' '}
+            <code>0000000000000000000000000000000000000000000000000000000000000001</code> for a pre-funded wallet.
           </p>
           <p>
             Preprod: <a href={FAUCET_URL} target="_blank" rel="noreferrer">Preprod faucet</a> for tNight.

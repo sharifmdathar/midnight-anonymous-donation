@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { Donation, witnesses } from '@midnight-ntwrk/donation-contract';
+import { Donation, witnesses } from 'anonymous-donation-contract';
 import { contractConfig } from '../config';
 
 const CONTRACT_TAG = 'donation';
@@ -26,7 +26,7 @@ describe('Donation contract pre-deploy preflight', () => {
     });
 
     it('Contract constructor throws if given empty object (vacant)', () => {
-      expect(() => new Donation.Contract({})).toThrow(/function-valued field named recipientSecretKey/);
+      expect(() => new Donation.Contract({} as never)).toThrow(/function-valued field named recipientSecretKey/);
     });
   });
 
@@ -38,12 +38,12 @@ describe('Donation contract pre-deploy preflight', () => {
       await expect(fs.access(zkDir)).resolves.toBeUndefined();
     });
 
-    it('keys directory exists (run: cd contract && npm run compact && npm run build)', async () => {
+    it('keys directory exists (run: cd contract && bun run compact && bun run build)', async () => {
       try {
         await fs.access(keysDir);
       } catch (e) {
         throw new Error(
-          `ZK keys directory missing: ${keysDir}. Run: cd contract && npm run compact && npm run build (compact generates keys/).`,
+          `ZK keys directory missing: ${keysDir}. Run: cd contract && bun run compact && bun run build (compact generates keys/).`,
         );
       }
     });
@@ -65,7 +65,7 @@ describe('Donation contract pre-deploy preflight', () => {
             return;
           } catch (altErr) {
             throw new Error(
-              `Verifier key missing for ${circuitId}. Expected ${verifierPath} or ${altVerifierPath}. Run: cd contract && npm run compact (do not use --skip-zk).`,
+              `Verifier key missing for ${circuitId}. Expected ${verifierPath} or ${altVerifierPath}. Run: cd contract && bun run compact (do not use --skip-zk).`,
             );
           }
         }

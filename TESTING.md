@@ -6,9 +6,9 @@ This document outlines the steps to verify that updated package versions do not 
 
 ## 1. Update the Dependencies
 
-- [ ] Run `npx npm-check-updates -u` to install the updated dependencies.
+- [ ] Run `bunx npm-check-updates -u` to install the updated dependencies.
 - [ ] Follow the instructions in the [README.md](./README.md) to verify they are still correct.
-- [ ] Run the dependency installation command `npm install`
+- [ ] Run the dependency installation command `bun install`
 - [ ] Confirm there are no errors
 
 ## 2. Compile the Compact Contract
@@ -23,9 +23,9 @@ This document outlines the steps to verify that updated package versions do not 
 
 ## 4. Start the Remote Testnet
 
-- [ ] Run the following command in the `counter-cli` directory:
+- [ ] Run the following command in the `donation-cli` directory:
   ```sh
-  npm run start-testnet-remote
+  bun run start-testnet-remote
   ```
 - [ ] Confirm there are no errors (the CLI asks if you want to create a new wallet)
 
