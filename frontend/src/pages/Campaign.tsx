@@ -1,25 +1,28 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useWallet } from '../hooks/useWallet';
 import { api } from '../api';
 
 export default function Campaign() {
   const { address } = useParams<{ address: string }>();
+  const { wallet, dappApi } = useWallet();
+
   const [donationCount, setDonationCount] = useState<string | null>(null);
   const [donateAmount, setDonateAmount] = useState('');
-  const [joinAddress, setJoinAddress] = useState('');
   const [loading, setLoading] = useState(false);
+  const [joining, setJoining] = useState(false);
   const [error, setError] = useState('');
   const [txMsg, setTxMsg] = useState('');
+  const [isJoined, setIsJoined] = useState(true);
 
+  // Load campaign state from backend API (fallback)
   const loadCampaign = async () => {
     if (!address) return;
-    setError('');
     try {
       const res = await api.getCampaign(address);
       if (res.ok) setDonationCount(res.donationCount ?? null);
-      else setError(res.error ?? 'Not found');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed');
+    } catch {
+      // Backend may not be running — that's okay
     }
   };
 
@@ -27,62 +30,54 @@ export default function Campaign() {
     loadCampaign();
   }, [address]);
 
-  const donate = async () => {
-    if (!donateAmount || BigInt(donateAmount) <= 0n) return;
+  // Join contract via Lace (connect to existing deployed contract)
+  const joinContract = async () => {
+    if (!dappApi || !address) return;
+    setError('');
+    setJoining(true);
+    try {
+      await dappApi.findContract(address);
+      setIsJoined(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to join contract');
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  // Donate via wallet
+  const donateWithWallet = async () => {
+    if (!dappApi || !donateAmount) return;
+    const amount = BigInt(donateAmount);
+    if (amount <= 0n) return;
+
     setError('');
     setTxMsg('');
     setLoading(true);
     try {
-      const res = await api.donate(donateAmount, address);
-      if (res.ok) {
-        setTxMsg(`Donation submitted. Tx: ${res.txId ?? '—'}`);
-        setDonateAmount('');
-        loadCampaign();
-      } else {
-        setError(res.error ?? 'Donate failed');
-      }
+      const result = await dappApi.callDonate(amount);
+      setTxMsg(`✅ Donation submitted! Tx: ${result.txHash}`);
+      setDonateAmount('');
+      loadCampaign();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed');
+      setError(e instanceof Error ? e.message : 'Donation failed');
     } finally {
       setLoading(false);
     }
   };
 
-  const joinThenDonate = async () => {
-    if (!joinAddress.trim()) return;
+  // Withdraw via wallet (recipient only)
+  const withdrawWithWallet = async () => {
+    if (!dappApi) return;
     setError('');
     setTxMsg('');
     setLoading(true);
     try {
-      await api.joinCampaign(joinAddress.trim());
-      const res = await api.donate(donateAmount || '1', joinAddress.trim());
-      if (res.ok) {
-        setTxMsg('Joined and donated.');
-        loadCampaign();
-      } else {
-        setError(res.error ?? 'Failed');
-      }
+      const result = await dappApi.callWithdraw();
+      setTxMsg(`✅ Withdrawal submitted! Tx: ${result.txHash}`);
+      loadCampaign();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const withdraw = async () => {
-    setError('');
-    setTxMsg('');
-    setLoading(true);
-    try {
-      const res = await api.withdraw();
-      if (res.ok) {
-        setTxMsg(`Withdraw submitted. Tx: ${res.txId ?? '—'}`);
-        loadCampaign();
-      } else {
-        setError(res.error ?? 'Withdraw failed');
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed');
+      setError(e instanceof Error ? e.message : 'Withdrawal failed');
     } finally {
       setLoading(false);
     }
@@ -90,65 +85,115 @@ export default function Campaign() {
 
   return (
     <div className="container">
-      <div className="card">
-        <h1>Campaign</h1>
+      {/* Campaign Header */}
+      <div className="card glass">
+        <h1>Campaign Dashboard</h1>
         {address && (
-          <>
-            <p><strong>Contract address:</strong></p>
-            <p style={{ wordBreak: 'break-all' }}>{address}</p>
-          </>
+          <div className="address-box">
+            <code>{address}</code>
+          </div>
         )}
-        <p>Donation count: {donationCount ?? '—'}</p>
-        <button className="secondary" onClick={loadCampaign}>
-          Refresh
+
+        <div className="stats-row">
+          <div className="stat">
+            <span className="stat-value">{donationCount ?? '—'}</span>
+            <span className="stat-label">Donations</span>
+          </div>
+        </div>
+
+        <button className="btn btn-secondary btn-sm" onClick={loadCampaign}>
+          ↻ Refresh
         </button>
-        {error && <p style={{ color: '#f4212e' }}>{error}</p>}
-        {txMsg && <p style={{ color: '#00ba7c' }}>{txMsg}</p>}
+
+        {error && <p className="error-text">{error}</p>}
+        {txMsg && <p className="success-text">{txMsg}</p>}
       </div>
-      <div className="card">
-        <h2>Donate</h2>
-        <p>
+
+      {/* Connect to Contract */}
+      {wallet && !isJoined && (
+        <div className="card glass">
+          <h2>Connect to Contract</h2>
+          <p className="muted">
+            Link your wallet to this contract to interact with it. This loads the contract state and
+            ZK circuits.
+          </p>
+          <button className="btn btn-primary" onClick={joinContract} disabled={joining}>
+            {joining ? (
+              <>
+                <span className="spinner" /> Connecting…
+              </>
+            ) : (
+              'Connect to Contract'
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Donate Section */}
+      <div className="card glass">
+        <h2>💎 Donate</h2>
+        <p className="muted">
+          Your donation amount is kept private using zero-knowledge proofs. Only the donation count
+          is updated publicly.
+        </p>
+
+        {!wallet && (
+          <div className="alert alert-warning">
+            Connect your Lace wallet to donate with ZK privacy.
+          </div>
+        )}
+
+        {wallet && !isJoined && (
+          <div className="alert alert-info">
+            Connect to the contract above first, then you can donate.
+          </div>
+        )}
+
+        <div className="input-group">
           <input
-            type="text"
+            type="number"
             placeholder="Amount"
             value={donateAmount}
             onChange={(e) => setDonateAmount(e.target.value)}
-            style={{ marginRight: '0.5rem' }}
+            className="input"
+            min="1"
           />
-          <button onClick={donate} disabled={loading || !address}>
-            Donate
+          <button
+            className="btn btn-primary"
+            onClick={donateWithWallet}
+            disabled={loading || !wallet || !isJoined || !donateAmount}
+          >
+            {loading ? (
+              <>
+                <span className="spinner" /> Processing…
+              </>
+            ) : (
+              'Donate with Wallet'
+            )}
           </button>
-        </p>
-        <p>Or join by contract address and donate:</p>
-        <p>
-          <input
-            type="text"
-            placeholder="Contract address"
-            value={joinAddress}
-            onChange={(e) => setJoinAddress(e.target.value)}
-            style={{ width: '100%', marginBottom: '0.5rem' }}
-          />
-          <input
-            type="text"
-            placeholder="Amount"
-            value={donateAmount}
-            onChange={(e) => setDonateAmount(e.target.value)}
-            style={{ marginRight: '0.5rem' }}
-          />
-          <button onClick={joinThenDonate} disabled={loading}>
-            Join and donate
-          </button>
-        </p>
+        </div>
       </div>
-      <div className="card">
-        <h2>Withdraw (recipient only)</h2>
-        <p>Only the campaign creator can withdraw.</p>
-        <button onClick={withdraw} disabled={loading}>
-          Withdraw
+
+      {/* Withdraw Section */}
+      <div className="card glass">
+        <h2>🔓 Withdraw</h2>
+        <p className="muted">
+          Only the campaign creator can withdraw. Your secret key is verified via ZK proof — no one
+          else can access the funds.
+        </p>
+        <button
+          className="btn btn-outline"
+          onClick={withdrawWithWallet}
+          disabled={loading || !wallet || !isJoined}
+        >
+          {loading ? 'Processing…' : 'Withdraw Funds'}
         </button>
       </div>
-      <p>
-        <Link to="/">Back</Link>
+
+      <p style={{ textAlign: 'center', marginTop: '1rem' }}>
+        <Link to="/campaign/create" className="nav-link">
+          ← Back to Campaigns
+        </Link>
       </p>
     </div>
   );

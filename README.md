@@ -7,6 +7,17 @@ A Midnight DApp for **private donations**: donors give with confidential amounts
 ## 🌐 Deployed Contract Address
 `622d5b12482bfa91daf2883fd5a28d4fa2fd269e76d3a3f22d9a114901e5e63b`
 
+## 📸 App Preview
+
+### 🏠 Home Page
+![Home Page](screenshots/home_page.png)
+
+### ➕ Create Campaign
+![Create Campaign](screenshots/create_campaign_page.png)
+
+### 📊 Campaign Dashboard
+![Campaign Dashboard](screenshots/campaign_dashboard_page.png)
+
 ## Project structure
 
 ```
